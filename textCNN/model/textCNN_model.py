@@ -40,8 +40,8 @@ class TextCNN():
             self.dropout_pro = tf.placeholder(dtype=tf.float32,name='dropout_pro')
             self.learning_rate = tf.placeholder(dtype=tf.float32, name='learning_rate')
             self.l2_loss = tf.constant(0.0)
-            #self.embedding_layer = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, sentence_length, embedding_size],
-            #     name='embedding_layer')
+            self.embedding_layer = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, sentence_length, embedding_size],
+                 name='embedding_layer')
 
 
             # 2. embedding_layer
