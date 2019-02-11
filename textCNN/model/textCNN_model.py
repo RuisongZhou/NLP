@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # @auther: RuisongZhou
-# @date: 2/8/2019
+# @date: 2/9/2019
 
 
 import tensorflow as tf
@@ -38,8 +38,10 @@ class TextCNN():
             self.input_x = tf.placeholder(dtype=tf.int32,shape=[None,sentence_length],name='input_x')
             self.input_y = tf.placeholder(dtype=tf.int32,shape=[None, 2],name='input_y')
             self.dropout_pro = tf.placeholder(dtype=tf.float32,name='dropout_pro')
+            self.learning_rate = tf.placeholder(dtype=tf.float32, name='learning_rate')
             self.l2_loss = tf.constant(0.0)
-            
+            #self.embedding_layer = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, sentence_length, embedding_size],
+            #     name='embedding_layer')
 
 
             # 2. embedding_layer
@@ -64,7 +66,7 @@ class TextCNN():
             with tf.name_scope('dropout_layer'):
                 
                 max_num = len(filter_sizes)*self.filter_numbers
-                h_pool = tf.contat(pool_layer_list,name='last_pool_layer', axis = 3)
+                h_pool = tf.concat(pool_layer_list,name='last_pool_layer', axis = 3)
                 pool_layer_flat = tf.reshape(h_pool,[-1,max_num],name='pool_layer_flat')
 
                 dropout_pro_layer = tf.nn.dropout(pool_layer_flat,self.dropout_pro,name='droupout')
@@ -87,7 +89,13 @@ class TextCNN():
                 losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.softmax_values,labels=self.input_y)
                 self.loss = tf.reduce_mean(losses) + 0.001*self.l2_loss
 
-                tf.summary.scalar('last_loss', self.accuracy  )
+                tf.summary.scalar('last_loss', self.loss  )
+            
+            with tf.name_scope('accuracy'):
+                correct_acc = tf.equal(self.predictions,tf.argmax(self.input_y,axis=1,output_type=tf.int32))
+
+                self.accuracy = tf.reduce_mean(tf.cast(correct_acc,'float'),name='accuracy')
+                tf.summary.scalar('accuracy',self.accuracy)
 
             with tf.name_scope('train'):
                 optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
@@ -97,7 +105,7 @@ class TextCNN():
 
             self.session = tf.InteractiveSession(graph=self.train_graph)
             self.merged = tf.summary.merge_all()
-            self.train_writter = tf.summary.FileWriter('../result/', graph=self.train_graph)
+            self.train_writer = tf.summary.FileWriter('../result/', graph=self.train_graph)
 
 
 
@@ -107,7 +115,7 @@ class TextCNN():
         #迭代训练
         for epoch in range(self.epochs):
             # pdb.set_trace()
-            train_batch = self.__get_batchs(train_x, train_y, self.batch_size)
+            train_batch = self.get_batches(train_x, train_y, self.batch_size)
             train_loss, train_acc, count = 0.0, 0.0, 0
             for batch_i in range(len(train_x)//self.batch_size):
                 x,y = next(train_batch)
@@ -126,7 +134,7 @@ class TextCNN():
                           format(epoch,batch_i,(len(train_x)//self.batch_size),train_loss/float(count),train_acc/float(count)))
 
     
-    def validatation(self,text_x, text_y):
+    def validation(self,text_x, text_y):
         test_batch = self.get_batches(text_x, text_y, self.batch_size)
         eval_loss, eval_acc, count = 0.0, 0.0, 0.0
         for batch in range(len(text_x)// self.batch_size):
